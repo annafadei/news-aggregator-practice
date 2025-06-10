@@ -38,13 +38,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install http-server
-        run: npm install -g http-server
-
       - name: Запустити локальний сервер фронтенду
         run: |
           cd frontend
-          nohup http-server -p 8001 &
+          nohup npx http-server -p 8001 &
 
       - name: Перевірити доступність index.html
         run: |
