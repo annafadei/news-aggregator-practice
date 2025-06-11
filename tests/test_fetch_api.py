@@ -13,10 +13,11 @@ def test_get_news_empty():
     assert res.json() == {"articles": []}
 
 class DummyFeed:
-    entries = [
-        {"title": "T1", "link": "http://a", "published": "2025-01-01"},
-        {"title": "T2", "link": "http://b", "published": ""}
-    ]
+    def __init__(self):
+        self.entries = [
+            {"title": "T1", "link": "http://a", "published": "2025-01-01"},
+            {"title": "T2", "link": "http://b", "published": ""}
+        ]
 
 def test_fetch_and_get(monkeypatch):
     # Змінюємо SOURCES у модулі config
