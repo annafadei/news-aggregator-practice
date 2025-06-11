@@ -21,7 +21,7 @@ class DummyFeed:
 
 def test_fetch_and_get(monkeypatch):
     # Змінюємо SOURCES у модулі config
-    monkeypatch.setattr("config.SOURCES", ["<http://example.com/rss>"])
+    monkeypatch.setattr("config.SOURCES", ["http://example.com/rss"])
     # Підмінюємо функцію parse, щоб не робити реальний HTTP-запит
     monkeypatch.setattr(feedparser, "parse", lambda url: DummyFeed())
     news_store[STUDENT_ID] = []
@@ -32,8 +32,8 @@ def test_fetch_and_get(monkeypatch):
     assert res2.status_code == 200
     assert res2.json() == {
         "articles": [
-            {"title": "T1", "link": "<http://a>", "published": "2025-01-01"},
-            {"title": "T2", "link": "<http://b>", "published": ""}
+            {"title": "T1", "link": "http://a", "published": "2025-01-01"},
+            {"title": "T2", "link": "http://b", "published": ""}
         ]
     }
 
