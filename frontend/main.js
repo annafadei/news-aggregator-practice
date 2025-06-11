@@ -1,49 +1,44 @@
-// Глобальні змінні
 let allArticles = [];
 
 const filterSelect = document.getElementById("filter-select");
-const tableBody    = document.querySelector("#articles-table tbody");
-const canvasCtx    = document.getElementById("sentiment-chart").getContext("2d");
+const tableBody = document.querySelector("#articles-table tbody");
+const canvasCtx = document.getElementById("sentiment-chart").getContext("2d");
 
-// 1) Функція завантаження даних
 async function loadData() {
   try {
-    // 1.1) Підтягуємо новини
-    await fetch(`${API_BASE}/fetch/${STUDENT_ID}`, {
+    const fetchRes = await fetch(`${API_BASE}/fetch/${STUDENT_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
+    if (!fetchRes.ok) throw new Error(`Fetch error: ${fetchRes.status} ${fetchRes.statusText}`);
 
-    // 1.2) Аналіз тональності
-    const res = await fetch(`${API_BASE}/analyze/${STUDENT_ID}`, {
+    const analyzeRes = await fetch(`${API_BASE}/analyze/${STUDENT_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
-    const data = await res.json();
+    if (!analyzeRes.ok) throw new Error(`Analyze error: ${analyzeRes.status} ${analyzeRes.statusText}`);
 
-    // 1.3) Зберігаємо у allArticles
+    const data = await analyzeRes.json();
+    if (!data.articles || !Array.isArray(data.articles)) throw new Error("Invalid response format: missing articles array");
+
     allArticles = data.articles.map(a => ({
       ...a,
       date: a.published ? new Date(a.published) : new Date()
     }));
 
-    // Рендеримо вміст
     render();
   } catch (err) {
-    console.error("Помилка під час завантаження даних:", err);
+    console.error("Error loading data:", err);
+    alert("Помилка при завантаженні новин або аналізі тональності. Перевірте авторизацію або статус сервера.");
   }
 }
 
-// 2) Функція рендеру таблиці та діаграми
 function render() {
   const filter = filterSelect.value;
-  const filtered = allArticles.filter(a =>
-    filter === "all" ? true : a.sentiment === filter
-  );
+  const filtered = allArticles.filter(a => filter === "all" ? true : a.sentiment === filter);
 
-  // 2.1) Оновлюємо таблицю
   tableBody.innerHTML = filtered
-    .sort((a,b) => b.date - a.date)
+    .sort((a, b) => b.date - a.date)
     .map(a => `
       <tr>
         <td>${a.date.toLocaleString()}</td>
@@ -52,9 +47,9 @@ function render() {
       </tr>
     `).join("");
 
-  // 2.2) Підрахунок для діаграми
-  const counts = { positive:0, neutral:0, negative:0 };
+  const counts = { positive: 0, neutral: 0, negative: 0 };
   filtered.forEach(a => counts[a.sentiment]++);
+
   chart.data.datasets[0].data = [
     counts.positive,
     counts.neutral,
@@ -63,14 +58,13 @@ function render() {
   chart.update();
 }
 
-// 3) Ініціалізація Chart.js (кругова діаграма)
 const chart = new Chart(canvasCtx, {
   type: 'pie',
   data: {
-    labels: ['Позитивні','Нейтральні','Негативні'],
+    labels: ['Позитивні', 'Нейтральні', 'Негативні'],
     datasets: [{
-      data: [0,0,0],
-      backgroundColor: ['#4caf50','#ffca28','#f44336']
+      data: [0, 0, 0],
+      backgroundColor: ['#4caf50', '#ffca28', '#f44336']
     }]
   },
   options: {
@@ -83,8 +77,6 @@ const chart = new Chart(canvasCtx, {
   }
 });
 
-// 4) Обробник зміни фільтра
 filterSelect.addEventListener("change", render);
 
-// 5) Завантаження даних при старті
 window.addEventListener("load", loadData);

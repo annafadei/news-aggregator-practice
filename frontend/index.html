@@ -4,13 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Дашборд новин</title>
-  <!-- Підключаємо стилі -->
   <link rel="stylesheet" href="styles.css" />
-  <!-- Chart.js з CDN -->
-  <script src="<https://cdn.jsdelivr.net/npm/chart.js>"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <h1>Дашборд новин</h1>
+
   <label for="filter-select">Фільтр тональності:</label>
   <select id="filter-select">
     <option value="all">Усі</option>
@@ -19,12 +18,10 @@
     <option value="negative">Негативні</option>
   </select>
 
-  <!-- Контейнер для діаграми -->
   <div class="chart-container">
     <canvas id="sentiment-chart"></canvas>
   </div>
 
-  <!-- Таблиця для статей -->
   <table id="articles-table">
     <thead>
       <tr>
@@ -36,13 +33,11 @@
     <tbody></tbody>
   </table>
 
-  <!-- Вставте свій STUDENT_ID вручну: -->
   <script>
     const STUDENT_ID = "Fadei_95465235";
-    const API_BASE    = "<http://localhost:8000>";
+    const API_BASE = "http://localhost:8000";
   </script>
 
-  <!-- Підключаємо JS-логіку -->
   <script src="main.js"></script>
 </body>
 </html>

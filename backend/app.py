@@ -1,30 +1,94 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import config
 from config import STUDENT_ID
 import feedparser
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer  # ← новий імпорт
-
-# ... існуючі імпорти і код ...
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
-# Додамо CORS (поки що для localhost)
+# CORS
+origins = [
+    "http://localhost:8001",
+    "http://127.0.0.1:8001",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8001"],  # фронтенд на 8001
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Пам'ять для збереження джерел (для кожного STUDENT_ID окремо)
-store = {STUDENT_ID: config.SOURCES.copy()}
+# Конфігурація аутентифікації
+SECRET_KEY = "your_secret_key_here"  # Заміни на щось складне
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Пам'ять для статей (словник: student_id -> список статей)
-news_store = {STUDENT_ID: []}
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Створюємо екземпляр аналізатора
+# "База користувачів"
+fake_users_db = {
+    "Fadei_95465235": {
+        "username": "Fadei_95465235",
+        "full_name": "Fadei",
+        "hashed_password": "password123",  # або твій реальний пароль
+        "disabled": False,
+    }
+}
+
+def verify_password(plain_password, hashed_password):
+    return plain_password == hashed_password
+
+def authenticate_user(username: str, password: str):
+    user = fake_users_db.get(username)
+    if not user:
+        return False
+    if not verify_password(password, user["hashed_password"]):
+        return False
+    return user
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# Пам'ять для джерел і новин
+store = {}
+news_store = {}
 analyzer = SentimentIntensityAnalyzer()
+
+@app.on_event("startup")
+async def load_initial_sources() -> None:
+    student_id = getattr(config, "STUDENT_ID", None)
+    sources = getattr(config, "SOURCES", [])
+    if student_id and isinstance(sources, list):
+        store[student_id] = list(sources)
+        news_store[student_id] = []
+        print(f"[startup] loaded {len(sources)} feeds for {student_id}")
+
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect username or password",
+                            headers={"WWW-Authenticate": "Bearer"})
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/info")
+def get_info():
+    return {"student_id": STUDENT_ID}
 
 @app.get("/sources/{student_id}")
 def get_sources(student_id: str):
@@ -46,10 +110,9 @@ def add_source(student_id: str, payload: dict):
 def fetch_news(student_id: str):
     if student_id != STUDENT_ID:
         raise HTTPException(status_code=404, detail="Student not found")
-    # Очищаємо попередній кеш
     news_store[student_id].clear()
     fetched = 0
-    for url in config.SOURCES:
+    for url in store.get(student_id, []):  # тепер беремо джерела з store
         feed = feedparser.parse(url)
         for entry in getattr(feed, "entries", []):
             news_store[student_id].append({
@@ -82,6 +145,5 @@ def analyze_tone(student_id: str):
             label = "negative"
         else:
             label = "neutral"
-        # Додаємо поля "sentiment" і "scores" в копію статті
         result.append({**art, "sentiment": label, "scores": scores})
     return {"analyzed": len(result), "articles": result}
