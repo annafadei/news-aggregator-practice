@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from backend.app import app
+from backend.app import app, news_store, store
 from config import STUDENT_ID
 
 client = TestClient(app)

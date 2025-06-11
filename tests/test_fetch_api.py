@@ -22,7 +22,7 @@ def test_fetch_and_get(monkeypatch):
     # Змінюємо SOURCES у модулі config
     monkeypatch.setattr("config.SOURCES", ["<http://example.com/rss>"])
     # Підмінюємо функцію parse, щоб не робити реальний HTTP-запит
-    monkeypatch.setattr(feedparser, "parse", lambda url: DummyFeed)
+    monkeypatch.setattr(feedparser, "parse", lambda url: DummyFeed())
     news_store[STUDENT_ID] = []
     res1 = client.post(f"/fetch/{STUDENT_ID}")
     assert res1.status_code == 200
