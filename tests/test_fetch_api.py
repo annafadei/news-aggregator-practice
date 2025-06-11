@@ -14,8 +14,8 @@ def test_get_news_empty():
 
 class DummyFeed:
     entries = [
-        {"title": "T1", "link": "<http://a>", "published": "2025-01-01"},
-        {"title": "T2", "link": "<http://b>", "published": ""}
+        {"title": "T1", "link": "http://a", "published": "2025-01-01"},
+        {"title": "T2", "link": "http://b", "published": ""}
     ]
 
 def test_fetch_and_get(monkeypatch):
@@ -40,6 +40,7 @@ def test_fetch_custom_feed(monkeypatch):
     news_store.clear()
     store.clear()
     store[STUDENT_ID] = []
+    news_store[STUDENT_ID] = []  # Додано для уникнення KeyError
 
     response = client.post(f"/sources/{STUDENT_ID}", json={"url": "http://test.com/rss"})
     assert response.status_code == 200
